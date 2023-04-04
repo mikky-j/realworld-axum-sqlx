@@ -2,13 +2,15 @@
 
 This is my implementation of the [Conduit API](https://github.com/gothinkster/realworld) built in [Rust](https://www.rust-lang.org/), with [Axum](https://github.com/tokio-rs/axum) and [SQLx](https://github.com/launchbadge/sqlx).
 
+Make sure to give this project a star if you love it!
+
 # Building
 
 - Clone the repository (or download it as a `.zip` file) and then set it as your working directory
 
 ```
 $ git clone https://github.com/mikky-j/realworld-axum-sqlx.git
-... output omitted ...
+*...output omitted...*
 
 $ cd realworld-axum-sqlx
 ```
@@ -29,15 +31,11 @@ JWT_EXPIRY_DURATION=<any-amount-of-time>
 $ sqlx database create
 
 $ sqlx migrate run
-Applied 20230403125654/migrate make table (5.201ms)
-Applied 20230404091100/migrate update table (2.4185ms)
 ```
 
 - Build/run the project with cargo:
 
 ```
 $ cargo run --release
-Compiling realworld v0.1.0 (C:\Users\mikky-j\Documents\realworld-axum-sqlx)
-    Finished release [optimized] target(s) in 3m 27s
-     Running `target\release\the.exe`
 ```
+
