@@ -1,31 +1,21 @@
-mod request;
-mod response;
-mod wrapper;
-
-pub use request::*;
-pub use response::*;
-pub use wrapper::*;
+pub mod request;
+pub mod response;
+pub mod wrapper;
 
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Tags {
-    #[serde(rename = "tagList")]
-    pub tag_list: Vec<String>,
-}
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ArticleQueryParams {
     #[serde(default)]
-    tag: Option<String>,
+    pub tag: Option<String>,
     #[serde(default)]
-    author: Option<String>,
+    pub author: Option<String>,
     #[serde(default)]
-    favourited: Option<String>,
+    pub favourited: Option<String>,
     #[serde(default = "get_default_limit")]
-    limit: u32,
+    pub limit: u32,
     #[serde(default)]
-    offset: u32,
+    pub offset: u32,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

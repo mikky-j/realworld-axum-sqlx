@@ -66,10 +66,13 @@ impl RequestError {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 RequestErrorJsonWrapper::new("Internal Server Error"),
             ),
-            RequestError::DatabaseError(_) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                RequestErrorJsonWrapper::new("Internal Server Error"),
-            ),
+            RequestError::DatabaseError(e) => {
+                eprintln!("Database error: {}", e);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    RequestErrorJsonWrapper::new("Internal Server Error"),
+                )
+            }
         };
         (status_code, Json(json))
     }

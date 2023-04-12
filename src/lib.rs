@@ -9,14 +9,18 @@ use anyhow::Context;
 pub use anyhow::Result;
 use axum::http::StatusCode;
 use axum::{routing::*, Extension, Json, Router};
-pub use data_formats::*;
 use handlers::*;
 use sqlx::{migrate::MigrateDatabase, Sqlite, SqlitePool};
+use std::fmt::Write;
 use std::{
     net::{SocketAddr, TcpListener},
     sync::Arc,
 };
 pub type JsonResponse<T> = (StatusCode, Json<T>);
+
+pub fn slugify(title: &str) -> String {
+    title.to_lowercase().replace(' ', "-")
+}
 
 pub async fn run_app(app: Router, address: SocketAddr) -> Result<()> {
     let db = init_db().await?;
@@ -49,6 +53,19 @@ pub async fn init_db() -> Result<SqlitePool> {
     Ok(pool)
 }
 
+pub fn ultra_fast_string_converter(v: &[i64]) -> String {
+    let buf_size = v.len() * 3; // length of each number + separator
+    let mut s = String::with_capacity(buf_size);
+    for (i, item) in v.iter().enumerate() {
+        match i {
+            0 => write!(&mut s, "({}", item).unwrap(),
+            index if index == v.len() - 1 => write!(&mut s, ",{})", item).unwrap(),
+            _ => write!(&mut s, ",{}", item).unwrap(),
+        }
+    }
+    s
+}
+
 pub fn get_random_free_port() -> (u16, SocketAddr) {
     let listener = TcpListener::bind("localhost:0").unwrap();
     match listener.local_addr() {
@@ -63,5 +80,28 @@ pub fn make_router() -> Router {
         .route("/users", post(register_user))
         .route("/user", get(get_current_user).put(update_user))
         .route("/profiles/:username", get(get_profile))
+        .route(
+            "/profiles/:username/follow",
+            post(follow_profile).delete(unfollow_profile),
+        )
+        .route("/articles", get(list_articles).post(create_article))
+        .route("/articles/feed", get(get_article_feed))
+        .route(
+            "/articles/:slug",
+            get(get_article).put(update_article).delete(delete_article),
+        )
+        .route(
+            "/articles/:slug/comments",
+            get(get_comments).post(add_comment),
+        )
+        .route(
+            "/articles/:slug/comments/:id",
+            get(get_comment).delete(delete_comment),
+        )
+        .route(
+            "/articles/:slug/favorite",
+            get(favourite_article).delete(unfavourite_article),
+        )
+        .route("/tags", get(get_tags))
         .fallback(not_found)
 }

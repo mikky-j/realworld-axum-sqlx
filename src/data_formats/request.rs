@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::Tags;
+use super::wrapper::Tags;
 
 // ----------------- User Request -----------------
 #[derive(Deserialize, Serialize, Debug)]
@@ -29,24 +29,24 @@ pub struct UpdateUserRequest {
 // ----------------- Article Request -----------------
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CreateArticleRequest {
-    title: String,
-    description: String,
-    body: String,
+    pub title: String,
+    pub description: String,
+    pub body: String,
     #[serde(flatten)]
-    tag_list: Option<Tags>,
+    pub tag_list: Option<Tags>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct UpdateArticleRequest {
     #[serde(default)]
-    title: Option<String>,
+    pub title: Option<String>,
     #[serde(default)]
-    description: Option<String>,
+    pub description: Option<String>,
     #[serde(default)]
-    body: Option<String>,
+    pub body: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CommentRequest {
-    body: String,
+    pub body: String,
 }

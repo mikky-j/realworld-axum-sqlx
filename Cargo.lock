@@ -1484,7 +1484,6 @@ dependencies = [
  "sqlx-rt",
  "stringprep",
  "thiserror",
- "time 0.3.20",
  "tokio-stream",
  "url",
 ]
