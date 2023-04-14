@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::Tags;
+use crate::models::{Article, Comment, User};
+
+use super::{datetime_to_string, wrapper::Tags};
 #[derive(Deserialize, Serialize, Debug)]
 pub struct UserResponse {
     pub email: String,
@@ -10,7 +12,7 @@ pub struct UserResponse {
     pub image: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Default, Clone)]
 pub struct ProfileResponse {
     pub username: String,
     pub bio: String,
@@ -18,11 +20,11 @@ pub struct ProfileResponse {
     pub following: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Default)]
 pub struct ArticleResponse {
     slug: String,
     title: String,
-    decscription: String,
+    description: String,
     body: String,
     #[serde(flatten)]
     tag_list: Tags,
@@ -32,17 +34,119 @@ pub struct ArticleResponse {
     updated_at: String,
     favorited: bool,
     #[serde(rename = "favoritesCount")]
-    favorites_count: u32,
+    favorites_count: i64,
     author: ProfileResponse,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CommentResponse {
-    id: u32,
+    id: i64,
     #[serde(rename = "createdAt")]
     created_at: String,
     #[serde(rename = "updatedAt")]
     updated_at: String,
     body: String,
     author: ProfileResponse,
+}
+
+impl UserResponse {
+    pub fn new(
+        User {
+            username,
+            email,
+            bio,
+            image,
+            ..
+        }: User,
+        token: String,
+    ) -> Self {
+        UserResponse {
+            username,
+            email,
+            bio: bio.unwrap_or_default(),
+            image,
+            token,
+        }
+    }
+}
+
+impl ProfileResponse {
+    pub fn new(
+        User {
+            username,
+            bio,
+            image,
+            ..
+        }: User,
+        following: bool,
+    ) -> Self {
+        ProfileResponse {
+            username,
+            bio: bio.unwrap_or_default(),
+            image,
+            following,
+        }
+    }
+}
+
+impl CommentResponse {
+    pub fn new(
+        Comment {
+            created_at,
+            updated_at,
+            body,
+            id,
+            ..
+        }: Comment,
+        author: ProfileResponse,
+    ) -> Self {
+        CommentResponse {
+            id,
+            created_at: created_at.to_string(),
+            updated_at: updated_at.to_string(),
+            body,
+            author,
+        }
+    }
+}
+
+impl ArticleResponse {
+    pub fn new(
+        Article {
+            slug,
+            title,
+            description,
+            body,
+            tag_list,
+            created_at,
+            updated_at,
+            favorited,
+            favorites_count,
+            author_username,
+            author_image,
+            author_bio,
+            following,
+            ..
+        }: Article,
+    ) -> Self {
+        ArticleResponse {
+            slug,
+            title,
+            description,
+            body,
+            tag_list: Tags {
+                tag_list: tag_list.split(',').map(|s| s.to_string()).collect(),
+            },
+            created_at: datetime_to_string(created_at),
+            updated_at: datetime_to_string(updated_at),
+            favorited,
+            favorites_count,
+            author: ProfileResponse {
+                username: author_username,
+                bio: author_bio.unwrap_or_default(),
+                image: author_image,
+                following,
+            },
+        }
+    }
 }

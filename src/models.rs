@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct User {
@@ -18,17 +18,24 @@ pub struct Article {
     pub title: String,
     pub description: String,
     pub body: String,
-    pub tag_list: Vec<String>,
-    pub created_at: DateTime<Utc>,
+    pub tag_list: String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
     pub favorited: bool,
-    pub favorites_count: Option<i64>,
+    pub favorites_count: i64,
+    pub author_id: i64,
+    pub author_username: String,
+    pub author_image: Option<String>,
+    pub author_bio: Option<String>,
+    pub following: bool,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct Comment {
     pub id: i64,
     pub body: String,
-    pub created_at: DateTime<Utc>,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
     pub article_id: i64,
     pub author_id: i64,
 }

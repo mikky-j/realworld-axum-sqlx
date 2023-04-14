@@ -105,7 +105,8 @@ pub fn verify_jwt_token(token: &str) -> Result<i64, RequestError> {
     Ok(claim.id)
 }
 
-pub async fn verify_password_argon2(password: String, hash: String) -> Result<bool> {
+pub async fn verify_password_argon2(password: String, hash: &str) -> Result<bool> {
+    let hash = hash.to_owned();
     tokio::task::spawn_blocking(move || {
         let hash = PasswordHash::new(hash.as_str())
             .map_err(|_| anyhow::anyhow!("Failed to verify password"))?;

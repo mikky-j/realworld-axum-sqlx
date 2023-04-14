@@ -1,5 +1,6 @@
-use crate::*;
 use serde::{Deserialize, Serialize};
+
+use super::response::{ArticleResponse, CommentResponse, ProfileResponse};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UserWrapper<T> {
@@ -12,25 +13,31 @@ pub struct ProfileWrapper {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct CommentWrapper {
-    pub comment: CommentResponse,
+pub struct CommentWrapper<T> {
+    pub comment: T,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct ArticleWrapper {
-    pub article: ArticleResponse,
+pub struct ArticleWrapper<T> {
+    pub article: T,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MultipleArticlesWrapper {
-    pub articles: Vec<CommentResponse>,
+    pub articles: Vec<ArticleResponse>,
     #[serde(rename = "articlesCount")]
-    pub article_count: u32,
+    pub article_count: usize,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MultipleCommentsWrapper {
     pub comments: Vec<CommentResponse>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Default)]
+pub struct Tags {
+    #[serde(rename = "tagList")]
+    pub tag_list: Vec<String>,
 }
 
 impl<T> UserWrapper<T> {
