@@ -4,7 +4,7 @@ use crate::JsonResponse;
 
 #[derive(Debug)]
 pub enum RequestError {
-    NotFound,
+    NotFound(&'static str),
     NotAuthorized(&'static str),
     Forbidden,
     RunTimeError(&'static str),
@@ -46,10 +46,9 @@ impl IntoResponse for RequestError {
 impl RequestError {
     pub fn to_json_response(&self) -> JsonResponse<RequestErrorJsonWrapper> {
         let (status_code, json) = match self {
-            RequestError::NotFound => (
-                StatusCode::NOT_FOUND,
-                RequestErrorJsonWrapper::new("Not Found"),
-            ),
+            RequestError::NotFound(message) => {
+                (StatusCode::NOT_FOUND, RequestErrorJsonWrapper::new(message))
+            }
             RequestError::NotAuthorized(message) => (
                 StatusCode::UNAUTHORIZED,
                 RequestErrorJsonWrapper::new(message),

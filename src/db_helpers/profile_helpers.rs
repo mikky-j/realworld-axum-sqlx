@@ -29,8 +29,7 @@ pub async fn get_profile_by_id_in_db(
             (profile, false)
         }
     } else {
-        //? Throw error if user not found
-        return Err(RequestError::NotFound);
+        return Err(RequestError::NotFound("User not found"));
     };
     Ok(result)
 }
@@ -60,8 +59,7 @@ pub async fn get_profile_by_username_in_db(
             (profile, false)
         }
     } else {
-        //? Throw error if user not found
-        return Err(RequestError::NotFound);
+        return Err(RequestError::NotFound("User not found"));
     };
     Ok(result)
 }
@@ -74,7 +72,7 @@ pub async fn follow_user_in_db(
     let mut tx = pool.begin().await?;
     let profile_result = match get_user_by_username(pool, profile).await? {
         Some(user) => user,
-        None => return Err(RequestError::RunTimeError("User not found")),
+        None => return Err(RequestError::NotFound("User not found")),
     };
     sqlx::query!(
         r#"
@@ -99,7 +97,7 @@ pub async fn unfollow_user_in_db(
     let mut tx = pool.begin().await?;
     let profile_result = match get_user_by_username(pool, profile).await? {
         Some(user) => user,
-        None => return Err(RequestError::RunTimeError("User not found")),
+        None => return Err(RequestError::NotFound("User not found")),
     };
 
     sqlx::query!(

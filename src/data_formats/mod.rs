@@ -2,6 +2,7 @@ pub mod request;
 pub mod response;
 pub mod wrapper;
 
+use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -28,4 +29,9 @@ pub struct FeedQueryParams {
 
 fn get_default_limit() -> u32 {
     20
+}
+
+fn datetime_to_string(date: NaiveDateTime) -> String {
+    let date: DateTime<Utc> = DateTime::from_utc(date, Utc);
+    date.to_rfc3339()
 }

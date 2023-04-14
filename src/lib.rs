@@ -100,7 +100,7 @@ pub fn make_router() -> Router {
         )
         .route(
             "/articles/:slug/favorite",
-            get(favourite_article).delete(unfavourite_article),
+            post(favourite_article).delete(unfavourite_article),
         )
         .route("/tags", get(get_tags))
         .fallback(not_found)

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::models::{Article, Comment, User};
 
-use super::wrapper::Tags;
+use super::{datetime_to_string, wrapper::Tags};
 #[derive(Deserialize, Serialize, Debug)]
 pub struct UserResponse {
     pub email: String,
@@ -137,8 +137,8 @@ impl ArticleResponse {
             tag_list: Tags {
                 tag_list: tag_list.split(',').map(|s| s.to_string()).collect(),
             },
-            created_at: created_at.to_string(),
-            updated_at: updated_at.to_string(),
+            created_at: datetime_to_string(created_at),
+            updated_at: datetime_to_string(updated_at),
             favorited,
             favorites_count,
             author: ProfileResponse {
@@ -146,9 +146,7 @@ impl ArticleResponse {
                 bio: author_bio.unwrap_or_default(),
                 image: author_image,
                 following,
-                // ..Default::default()
             },
-            ..Default::default()
         }
     }
 }

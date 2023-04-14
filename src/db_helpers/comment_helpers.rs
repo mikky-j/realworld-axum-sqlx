@@ -23,14 +23,20 @@ pub async fn add_comments_to_article_in_db(
 
     let article = match article {
         Some(record) => record,
-        None => return Err(RequestError::RunTimeError("article not found")),
+        None => return Err(RequestError::NotFound("Article not found")),
     };
 
-    let result = sqlx::query!(
+    let result = sqlx::query_as!(
+        Comment,
         r#"
         INSERT INTO comments (body, author_id, article_id)
         VALUES ($1, $2, $3)
-        RETURNING id, body as "body!", created_at as "created_at!", updated_at as "updated_at!"
+        RETURNING id as "id!",
+         body as "body!",
+         created_at as "created_at!",
+         updated_at as "updated_at!",
+         article_id as "article_id!",
+         author_id as "author_id!"
         "#,
         body,
         id,
@@ -40,14 +46,6 @@ pub async fn add_comments_to_article_in_db(
     .await?;
     tx.commit().await?;
 
-    let result = Comment {
-        id: result.id,
-        body: result.body,
-        created_at: result.created_at,
-        article_id: article.id,
-        author_id: id,
-        updated_at: result.updated_at,
-    };
     Ok(result)
 }
 
@@ -82,14 +80,14 @@ pub async fn get_comment_for_article_in_db(
     let result = sqlx::query_as!(
         Comment,
         r#"
-        SELECT comments.id as "id!", 
-        comments.body, 
-        comments.created_at as "created_at!", 
-        comments.updated_at as "updated_at!", 
-        comments.article_id, 
-        comments.author_id
+        SELECT id as "id!", 
+        body, 
+        created_at as "created_at!", 
+        updated_at as "updated_at!", 
+        article_id, 
+        author_id
          from comments 
-         WHERE article_id = $1 AND comments.id = $2
+         WHERE article_id = $1 AND id = $2
         "#,
         article_id,
         id
@@ -99,7 +97,7 @@ pub async fn get_comment_for_article_in_db(
     tx.commit().await?;
     let result = match result {
         Some(record) => record,
-        None => return Err(RequestError::RunTimeError("comment not found")),
+        None => return Err(RequestError::NotFound("Comment not found")),
     };
     Ok(result)
 }
@@ -113,11 +111,20 @@ pub async fn get_comments_for_article_in_db(
     let result = sqlx::query_as!(
         Comment,
         r#"
-        SELECT id as "id!", body, created_at as "created_at!", updated_at as "updated_at!", article_id, author_id from comments WHERE article_id = $1
+        SELECT id as "id!",
+         body,
+         created_at as "created_at!",
+         updated_at as "updated_at!",
+         article_id,
+         author_id
+            from comments 
+              WHERE article_id = $1
         
         "#,
         article_id
-    ).fetch_all(&mut tx).await?;
+    )
+    .fetch_all(&mut tx)
+    .await?;
     tx.commit().await?;
     Ok(result)
 }

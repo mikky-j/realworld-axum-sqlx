@@ -98,7 +98,7 @@ pub async fn get_current_user(
         let user = match user {
             Some(user) => user,
             None => {
-                return Err(RequestError::RunTimeError("User not found"));
+                return Err(RequestError::NotFound("User not found"));
             }
         };
         let result = UserResponse::new(user, token);
@@ -205,7 +205,7 @@ pub async fn get_article(
     let article = match article {
         Some(article) => article,
         None => {
-            return Err(RequestError::RunTimeError("Article not found"));
+            return Err(RequestError::NotFound("Article not found"));
         }
     };
     let article = ArticleResponse::new(article);
@@ -347,7 +347,7 @@ pub async fn add_comment(
         let user = match get_user_by_id(&pool, comment.author_id).await? {
             Some(user) => user,
             None => {
-                return Err(RequestError::RunTimeError("User not found"));
+                return Err(RequestError::NotFound("User not found"));
             }
         };
         let profile_response = ProfileResponse::new(user, false);

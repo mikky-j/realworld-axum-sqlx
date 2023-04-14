@@ -141,6 +141,6 @@ pub async fn get_article_id_by_slug_in_db(
         .await?;
     match article {
         Some(record) => Ok(record.id),
-        None => Err(RequestError::RunTimeError("Article not found")),
+        None => Err(RequestError::NotFound("Article not found")),
     }
 }

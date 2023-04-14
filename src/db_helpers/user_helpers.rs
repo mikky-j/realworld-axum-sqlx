@@ -50,15 +50,14 @@ pub async fn update_user_in_db(
     };
 
     let (query, params) = QueryBuilder::new("UPDATE users SET ".to_owned(), Some(", "), None)
-        .add_param("email = ?", email)
-        .add_param("bio = ?", bio)
-        .add_param("image = ?", image)
-        .add_param("username = ?", username)
-        .add_param("password = ?", password)
-        .trim()
-        .add_param(" WHERE id = ?", Some(id.to_string()))
+        .add_param("email", email)
+        .add_param("bio", bio)
+        .add_param("image", image)
+        .add_param("username", username)
+        .add_param("password", password)
         .build();
 
+    let query = format!("{query} WHERE id = {id}");
     let mut query = sqlx::query(&query);
     for i in params {
         query = query.bind(i);
@@ -69,7 +68,9 @@ pub async fn update_user_in_db(
 
     let result = match get_user_by_id(pool, id).await? {
         Some(user) => user,
-        None => return Err(RequestError::NotFound),
+        //? This shouldn't really be possible tho but it might be the case if a user deletes
+        //? their account but still has their tokens somehow
+        None => return Err(RequestError::NotFound("User not found")),
     };
 
     Ok(result)

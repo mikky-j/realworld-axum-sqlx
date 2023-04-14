@@ -10,26 +10,105 @@ use crate::slugify;
 use super::{get_user_by_username, QueryBuilder};
 
 const ARTICLE_QUERY: &str = r#"
-        SELECT articles.id as "id", articles.slug, articles.title, articles.author_id, articles.description, articles.body,
-       (SELECT GROUP_CONCAT(tags.name, ',')
-        FROM tags
-        JOIN articletags ON articletags.tag_id = tags.id
-        WHERE articletags.article_id = articles.id
-        ) as "tag_list",
-       articles.created_at as "created_at",
-       articles.updated_at as "updated_at",
-       EXISTS(SELECT 1 FROM favourite
-              WHERE favourite.article_id = articles.id AND favourite.user_id = $1) as "favorited",
-       COUNT(favourite.article_id) as "favorites_count",
-       users.username as "author_username",
-       users.image as "author_image",
-       users.bio as "author_bio",
-        EXISTS(SELECT 1 FROM follows WHERE followed_id = articles.author_id AND follower_id = $1) as "following"
-        FROM articles
-        JOIN users ON articles.author_id = users.id
-        JOIN articletags ON articletags.article_id = articles.id
-        LEFT JOIN favourite ON articles.id = favourite.article_id
-        "#;
+            SELECT DISTINCT articles.id                                   AS "id",
+                            title                                         AS "title",
+                            slug                                          AS "slug",
+                            body                                          AS "body",
+                            description                                   AS "description",
+                            author_id                                     AS "author_id",
+                            articles.created_at                           AS "created_at",
+                            updated_at                                    AS "updated_at",
+                            (SELECT Group_concat(tags.name, ',')
+                            FROM   tags
+                                    JOIN articletags
+                                    ON articletags.tag_id = tags.id
+                            WHERE  articletags.article_id = articles.id) AS "tag_list",
+                            users.username                                AS
+                            "author_username",
+                            users.image                                   AS "author_image",
+                            users.bio                                     AS "author_bio",
+                            (SELECT Count(favourite.article_id)
+                            FROM   favourite
+                            WHERE  favourite.article_id = articles.id)   AS
+                            "favorites_count",
+                            EXISTS (SELECT 1
+                                    FROM   favourite
+                                    WHERE  favourite.article_id = articles.id
+                                        AND favourite.user_id = $1)    AS "favorited",
+                            EXISTS (SELECT 1
+                                    FROM   follows
+                                    WHERE  followed_id = articles.author_id
+                                        AND follower_id = $1)          AS "following"
+            FROM   articles
+                JOIN users
+                    ON articles.author_id = users.id
+                LEFT JOIN favourite
+                        ON favourite.article_id = articles.id
+                LEFT JOIN follows
+                        ON follows.followed_id = articles.author_id
+                            AND ( follows.follower_id = $1
+                                    OR $1 IS NULL )
+                LEFT JOIN articletags
+                        ON articletags.article_id = articles.id
+                LEFT JOIN tags
+                        ON tags.id = articletags.tag_id
+            WHERE  ( users.username = $2
+                    OR $2 IS NULL )
+                AND ( favourite.user_id = $6
+                        OR $6 IS NULL )
+                AND ( tags.name = $3
+                        OR $3 IS NULL )
+                AND ( follows.follower_id = $7
+                        OR $7 IS NULL )
+            ORDER  BY articles.created_at DESC
+            LIMIT  $4 offset $5 
+     "#;
+
+const SINGLE_ARTICLE_QUERY: &str = r#"
+            SELECT DISTINCT articles.id                                   AS "id",
+                            title                                         AS "title",
+                            slug                                          AS "slug",
+                            body                                          AS "body",
+                            description                                   AS "description",
+                            author_id                                     AS "author_id",
+                            articles.created_at                           AS "created_at",
+                            updated_at                                    AS "updated_at",
+                            (SELECT Group_concat(tags.NAME, ',')
+                            FROM   tags
+                                    JOIN articletags
+                                    ON articletags.tag_id = tags.id
+                            WHERE  articletags.article_id = articles.id) AS "tag_list",
+                            users.username                                AS
+                            "author_username",
+                            users.image                                   AS "author_image",
+                            users.bio                                     AS "author_bio",
+                            (SELECT Count(favourite.article_id)
+                            FROM   favourite
+                            WHERE  favourite.article_id = articles.id)   AS
+                            "favorites_count",
+                            EXISTS (SELECT 1
+                                    FROM   favourite
+                                    WHERE  favourite.article_id = articles.id
+                                        AND favourite.user_id = $1)    AS "favorited",
+                            EXISTS (SELECT 1
+                                    FROM   follows
+                                    WHERE  followed_id = articles.author_id
+                                        AND follower_id = $1)          AS "following"
+            FROM   articles
+                JOIN users
+                    ON articles.author_id = users.id
+                LEFT JOIN follows
+                        ON follows.followed_id = articles.author_id
+                            AND ( follows.follower_id = $1
+                                    OR $1 IS NULL )
+                LEFT JOIN articletags
+                        ON articletags.article_id = articles.id
+                LEFT JOIN tags
+                        ON tags.id = articletags.tag_id
+            WHERE  ( articles.slug = $2
+                    OR $2 IS NULL )  
+"#;
+
 pub async fn list_all_articles(
     pool: &SqlitePool,
     id: Option<i64>,
@@ -42,99 +121,26 @@ pub async fn list_all_articles(
     }: ArticleQueryParams,
 ) -> Result<Vec<Article>, RequestError> {
     let mut tx = pool.begin().await?;
-    let article = sqlx::query_as!(
-        Article,
-        r#"
-        Select DISTINCT articles.id as "id!: i64", 
-        title as "title!",
-        slug as "slug!",
-        body as "body!",
-        description as "description!",
-        author_id as "author_id!: i64",
-        articles.created_at as "created_at!",
-        updated_at as "updated_at!",
-        (SELECT 
-            GROUP_CONCAT(tags.name, ',')
-             from tags 
-             join articletags on articletags.tag_id = tags.id
-              where articletags.article_id = articles.id
-            ) as "tag_list!",
-        users.username as "author_username!",
-        users.image as "author_image",
-        users.bio as "author_bio",
-        (select count(favourite.article_id) from favourite where favourite.article_id = articles.id) as "favorites_count!: i64",
-        Exists(Select 1 from favourite where favourite.article_id = articles.id and favourite.user_id = $1) as "favorited!: bool",
-        Exists(Select 1 from follows where followed_id = articles.author_id and follower_id = $1) as "following!: bool"
-     from articles
-     JOIN users ON articles.author_id = users.id
-     LEFT JOIN follows ON follows.followed_id = articles.author_id
-     LEFT JOIN articletags ON articletags.article_id = articles.id
-     LEFT JOIN tags ON tags.id = articletags.tag_id
-     WHERE (users.username = $2 OR $2 IS NULL)
-     AND (tags.name = $3 OR $3 IS NULL)
-     ORDER BY articles.created_at DESC
-     LIMIT $4 OFFSET $5
-     "#,
-     id,
-     author,
-     tag, limit, offset
-    )
-    .fetch_all(&mut tx)
-    .await?;
+    let favourite_id = match &favourited {
+        Some(username) => get_user_by_username(pool, username)
+            .await?
+            .map(|user| user.id),
+        None => None,
+    };
+    let article = sqlx::query_as::<Sqlite, Article>(ARTICLE_QUERY)
+        .bind(id)
+        .bind(author)
+        .bind(tag)
+        .bind(limit)
+        .bind(offset)
+        .bind(favourite_id)
+        //? This is set to none coz we want to get all the articles not just the articles that a user is following
+        .bind(Option::<String>::None)
+        .fetch_all(&mut tx)
+        .await?;
 
     tx.commit().await?;
     Ok(article)
-}
-
-pub async fn list_articles_in_db(
-    pool: &SqlitePool,
-    id: Option<i64>,
-    ArticleQueryParams {
-        tag,
-        author,
-        favourited,
-        limit,
-        offset,
-    }: ArticleQueryParams,
-) -> Result<Vec<Article>, RequestError> {
-    let mut tx = pool.begin().await?;
-
-    let username = match favourited {
-        Some(username) => {
-            let user = get_user_by_username(pool, &username).await?;
-            if let Some(user) = user {
-                Some(user.id)
-            } else {
-                None
-            }
-        }
-        None => None,
-    };
-
-    let (query, params) = QueryBuilder::new(
-        String::from("WHERE "),
-        Some(" AND "),
-        Some(vec![id.map(|g| g.to_string()).unwrap_or_default()]),
-    )
-    .add_param("favourite.user_id", username.map(|id| id.to_string()))
-    .add_param("tags.name", tag)
-    .add_param("user.username", author)
-    .build();
-
-    let raw_initial_query = format!(
-        "{} {} ORDER BY articles.updated_at DESC LIMIT {} OFFSET {}",
-        ARTICLE_QUERY, query, limit, offset
-    );
-    // raw_initial_query.push_str(&query);
-
-    let mut result = sqlx::query_as::<Sqlite, Article>(&raw_initial_query);
-    for param in params {
-        result = result.bind(param);
-    }
-
-    let result = result.fetch_all(&mut tx).await?;
-    tx.commit().await?;
-    Ok(result)
 }
 
 pub async fn list_articles_feed_in_db(
@@ -149,42 +155,18 @@ pub async fn list_articles_feed_in_db(
     }: ArticleQueryParams,
 ) -> Result<Vec<Article>, RequestError> {
     let mut tx = pool.begin().await?;
+    let article = sqlx::query_as::<Sqlite, Article>(ARTICLE_QUERY)
+        .bind(id)
+        .bind(author)
+        .bind(tag)
+        .bind(limit)
+        .bind(offset)
+        .bind(favourited)
+        .bind(id)
+        .fetch_all(&mut tx)
+        .await?;
 
-    let username = match favourited {
-        Some(username) => {
-            let user = get_user_by_username(pool, &username).await?;
-            if let Some(user) = user {
-                Some(user.id)
-            } else {
-                None
-            }
-        }
-        None => None,
-    };
-
-    let (query, params) = QueryBuilder::new(
-        String::from("WHERE "),
-        Some(" AND "),
-        Some(vec![id.to_string()]),
-    )
-    .add_param("favourite.user_id", username.map(|id| id.to_string()))
-    .add_param("tags.name", tag)
-    .add_param("user.username", author)
-    .build();
-
-    let raw_initial_query = format!(
-        "{}\nJOIN follows ON folows.followed_id = users.id {} AND follows.follower_id = $1 ORDER BY articles.updated_at DESC LIMIT {} OFFSET {}",
-        ARTICLE_QUERY, query, limit, offset
-    );
-
-    let mut result = sqlx::query_as::<Sqlite, Article>(&raw_initial_query);
-    for param in params {
-        result = result.bind(param);
-    }
-
-    let result = result.fetch_all(&mut tx).await?;
-
-    Ok(result)
+    Ok(article)
 }
 
 pub async fn get_article_by_slug_in_db(
@@ -194,9 +176,7 @@ pub async fn get_article_by_slug_in_db(
 ) -> Result<Option<Article>, RequestError> {
     let mut tx = pool.begin().await?;
 
-    let raw_initial_query = format!("{} WHERE articles.slug = $2", ARTICLE_QUERY);
-
-    let result = sqlx::query_as::<Sqlite, Article>(&raw_initial_query)
+    let result = sqlx::query_as::<Sqlite, Article>(SINGLE_ARTICLE_QUERY)
         .bind(id)
         .bind(slug)
         .fetch_optional(&mut tx)
@@ -223,6 +203,7 @@ pub async fn create_article_in_db(
 
     let result = sqlx::query!(
         r#"
+
         INSERT INTO articles (slug, title, description, body, author_id)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id, slug as "slug!" 
@@ -235,7 +216,6 @@ pub async fn create_article_in_db(
     )
     .fetch_one(&mut tx)
     .await?;
-    println!("I inserted the article");
 
     let article_id = result.id;
     if let Some(Tags { tag_list: tag }) = tag_list {
@@ -267,11 +247,9 @@ pub async fn create_article_in_db(
     }
     tx.commit().await?;
 
-    println!("I inserted the tags of the article");
     let result = get_article_by_slug_in_db(pool, &result.slug, Some(id))
         .await?
         .unwrap();
-    println!("I got the article");
 
     Ok(result)
 }
@@ -289,25 +267,22 @@ pub async fn update_article_in_db(
     let mut tx = pool.begin().await?;
     let new_slug = title.as_ref().map(|title| slugify(title));
     let (query_1, params_1) = QueryBuilder::new(String::from("SET "), Some(", "), None)
-        .add_param("title = ?", title)
-        .add_param("description = ?", description)
-        .add_param("body = ?", body)
-        .add_param("slug = ?", new_slug.clone())
+        .add_param("title", title)
+        .add_param("description", description)
+        .add_param("body", body)
+        .add_param("slug", new_slug.clone())
         .build();
-    let (query_2, params_2) = QueryBuilder::new(String::from("WHERE "), Some(" AND "), None)
-        .add_param("articles.slug = ?", Some(slug.to_owned()))
-        .add_param("articles.author_id = ?", Some(id.to_string()))
-        .build();
-
-    let query = format!("UPDATE articles {query_1}, updated_at = CURRENT_TIMESTAMP {query_2}");
+    let query = format!("UPDATE articles {query_1}, updated_at = CURRENT_TIMESTAMP WHERE articles.slug = {slug} AND articles.author_id = {id}");
     let mut result = sqlx::query(&query);
-    // .bind(params) .fetch_optional(&mut tx)
-    // .await?;
-    for param in params_1.iter().chain(params_2.iter()) {
+
+    for param in params_1 {
         result = result.bind(param);
     }
 
-    result.execute(&mut tx).await?;
+    let result = result.execute(&mut tx).await?;
+    if result.rows_affected() == 0 {
+        return Err(RequestError::Forbidden);
+    }
 
     let slug = new_slug.unwrap_or(slug.to_owned());
 
@@ -326,7 +301,7 @@ pub async fn delete_article_in_db(
 ) -> Result<(), RequestError> {
     let mut tx = pool.begin().await?;
 
-    let _ = sqlx::query!(
+    let result = sqlx::query!(
         r#"
         DELETE FROM articles
         WHERE articles.slug = $1 AND articles.author_id = $2
@@ -336,6 +311,10 @@ pub async fn delete_article_in_db(
     )
     .execute(&mut tx)
     .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(RequestError::Forbidden);
+    }
 
     tx.commit().await?;
     Ok(())
@@ -352,7 +331,7 @@ pub async fn favourite_article_in_db(
 
     let mut article = match article {
         Some(article) => article,
-        None => return Err(RequestError::RunTimeError("Article not found")),
+        None => return Err(RequestError::NotFound("Article not found")),
     };
 
     sqlx::query!(
@@ -367,7 +346,7 @@ pub async fn favourite_article_in_db(
     .await?;
 
     tx.commit().await?;
-    // article.favorited = true;
+    article.favorited = true;
 
     Ok(article)
 }
@@ -383,26 +362,25 @@ pub async fn unfavourite_article_in_db(
 
     let mut article = match article {
         Some(article) => article,
-        None => return Err(RequestError::RunTimeError("Article not found")),
+        None => return Err(RequestError::NotFound("Article not found")),
     };
 
-    // let result = if article.favorited {
-    //     sqlx::query!(
-    //         r#"
-    //         DELETE FROM favourite WHERE article_id = $1 AND user_id = $2
-    //         "#,
-    //         article.id,
-    //         id
-    //     )
-    //     .execute(&mut tx)
-    //     .await?;
-    //     article.favorited = false;
+    let result = if article.favorited {
+        sqlx::query!(
+            r#"
+            DELETE FROM favourite WHERE article_id = $1 AND user_id = $2
+            "#,
+            article.id,
+            id
+        )
+        .execute(&mut tx)
+        .await?;
+        article.favorited = false;
 
-    //     Ok(article)
-    // } else {
-    //     Err(RequestError::RunTimeError("Article was not liked before"))
-    // };
-    // tx.commit().await?;
-    // result
-    todo!()
+        Ok(article)
+    } else {
+        Err(RequestError::RunTimeError("Article was not liked before"))
+    };
+    tx.commit().await?;
+    result
 }
