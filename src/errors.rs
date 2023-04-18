@@ -1,4 +1,4 @@
-use axum::{http::StatusCode, response::IntoResponse, Json};
+use axum::{extract::rejection::JsonRejection, http::StatusCode, response::IntoResponse, Json};
 
 use crate::JsonResponse;
 
@@ -6,6 +6,7 @@ use crate::JsonResponse;
 pub enum RequestError {
     NotFound(&'static str),
     NotAuthorized(&'static str),
+    BadRequest(&'static str),
     Forbidden,
     RunTimeError(&'static str),
     ServerError,
@@ -28,6 +29,24 @@ impl RequestErrorJsonWrapper {
             errors: RequestErrorJson {
                 body: vec![error.to_string()],
             },
+        }
+    }
+}
+
+impl From<JsonRejection> for RequestError {
+    fn from(value: JsonRejection) -> Self {
+        match value {
+            JsonRejection::JsonDataError(_) => RequestError::RunTimeError(
+                "Invalid Request Json.\nPlease check the documentation for the correct format",
+            ),
+            JsonRejection::JsonSyntaxError(_) => RequestError::BadRequest("Invalid Request Body."),
+            JsonRejection::MissingJsonContentType(_) => {
+                RequestError::RunTimeError("Missing JSON Content Type.")
+            }
+            JsonRejection::BytesRejection(_) => RequestError::BadRequest("Invalid Request Body."),
+            _ => RequestError::RunTimeError(
+                "There was an error with the data associated with this request",
+            ),
         }
     }
 }
@@ -72,6 +91,10 @@ impl RequestError {
                     RequestErrorJsonWrapper::new("Internal Server Error"),
                 )
             }
+            RequestError::BadRequest(message) => (
+                StatusCode::BAD_REQUEST,
+                RequestErrorJsonWrapper::new(message),
+            ),
         };
         (status_code, Json(json))
     }

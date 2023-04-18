@@ -7,6 +7,7 @@ mod models;
 
 use anyhow::Context;
 pub use anyhow::Result;
+use axum::http::Method;
 use axum::http::StatusCode;
 use axum::{routing::*, Extension, Json, Router};
 use handlers::*;
@@ -16,6 +17,8 @@ use std::{
     net::{SocketAddr, TcpListener},
     sync::Arc,
 };
+use tower_http::cors::Any;
+use tower_http::cors::CorsLayer;
 pub type JsonResponse<T> = (StatusCode, Json<T>);
 
 pub fn slugify(title: &str) -> String {
@@ -39,17 +42,14 @@ pub async fn init_db() -> Result<SqlitePool> {
             Ok(_) => println!("Create db success"),
             Err(error) => panic!("error: {}", error),
         }
-    } else {
-        println!("Database already exists");
     }
     let pool = SqlitePool::connect(&db_url).await?;
-    println!("Running Migrations");
+
     // Run migrations
     sqlx::migrate!("./migrations")
         .run(&pool)
         .await
         .context("Failed to run migrations")?;
-    println!("Migrations completed");
     Ok(pool)
 }
 
@@ -74,6 +74,10 @@ pub fn get_random_free_port() -> (u16, SocketAddr) {
     }
 }
 pub fn make_router() -> Router {
+    let cors = CorsLayer::new()
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
+        // .allow_credentials(true)
+        .allow_origin(Any);
     Router::new()
         .route("/check_health", get(alive))
         .route("/users/login", post(login_user))
@@ -103,5 +107,6 @@ pub fn make_router() -> Router {
             post(favourite_article).delete(unfavourite_article),
         )
         .route("/tags", get(get_tags))
+        .layer(cors)
         .fallback(not_found)
 }
