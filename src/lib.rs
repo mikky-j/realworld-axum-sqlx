@@ -91,6 +91,7 @@ pub fn make_router() -> Router {
         )
         .route("/articles", get(list_articles).post(create_article))
         .route("/articles/feed", get(get_article_feed))
+        // This is a route to allow the frontend(NextJS getStaticPath) to get all slugs
         .route("/articles/slugs/list", get(get_all_slugs))
         .route(
             "/articles/:slug",
