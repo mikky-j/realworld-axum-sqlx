@@ -190,6 +190,12 @@ pub async fn unfollow_profile(
 
 // ----------------- Article Handlers -----------------
 
+// This is a method to allow the frontend(NextJS getStaticPath) to get all slugs
+pub async fn get_all_slugs(Extension(pool): Extension<Arc<SqlitePool>>) -> JsonResult<Vec<String>> {
+    let slugs = get_all_slugs_in_db(&pool).await?;
+    Ok((StatusCode::OK, Json(slugs)))
+}
+
 pub async fn list_articles(
     Extension(pool): Extension<Arc<SqlitePool>>,
     maybe_user: MaybeUser,
@@ -403,5 +409,5 @@ pub async fn delete_comment(
 // ----------------- Tag Handlers -----------------
 pub async fn get_tags(Extension(pool): Extension<Arc<SqlitePool>>) -> JsonResult<Tags> {
     let tag_list = get_tags_in_db(&pool).await?;
-    Ok((StatusCode::OK, Json(Tags { tag_list })))
+    Ok((StatusCode::OK, Json(Tags { tags: tag_list })))
 }

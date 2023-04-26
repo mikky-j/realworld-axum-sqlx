@@ -218,7 +218,7 @@ pub async fn create_article_in_db(
     .await?;
 
     let article_id = result.id;
-    if let Some(Tags { tag_list: tag }) = tag_list {
+    if let Some(Tags { tags: tag }) = tag_list {
         for tag in tag {
             let tag_id = sqlx::query!(
                 r#"
@@ -383,4 +383,26 @@ pub async fn unfavourite_article_in_db(
     };
     tx.commit().await?;
     result
+}
+
+// This is a function to allow the frontend(NextJS getStaticPath) to get all slugs
+pub async fn get_all_slugs_in_db(pool: &SqlitePool) -> Result<Vec<String>, RequestError> {
+    let mut tx = pool.begin().await?;
+
+    let result = sqlx::query!(
+        r#"
+        SELECT slug FROM articles
+        "#
+    )
+    .fetch_all(&mut tx)
+    .await?;
+
+    let result = result
+        .into_iter()
+        .map(|article| article.slug)
+        .collect::<Vec<String>>();
+
+    tx.commit().await?;
+
+    Ok(result)
 }

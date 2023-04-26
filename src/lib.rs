@@ -76,6 +76,7 @@ pub fn get_random_free_port() -> (u16, SocketAddr) {
 pub fn make_router() -> Router {
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
+        .allow_headers(Any)
         // .allow_credentials(true)
         .allow_origin(Any);
     Router::new()
@@ -90,6 +91,7 @@ pub fn make_router() -> Router {
         )
         .route("/articles", get(list_articles).post(create_article))
         .route("/articles/feed", get(get_article_feed))
+        .route("/articles/slugs/list", get(get_all_slugs))
         .route(
             "/articles/:slug",
             get(get_article).put(update_article).delete(delete_article),

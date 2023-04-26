@@ -36,8 +36,7 @@ pub struct MultipleCommentsWrapper {
 
 #[derive(Debug, Deserialize, Serialize, Default)]
 pub struct Tags {
-    #[serde(rename = "tagList")]
-    pub tag_list: Vec<String>,
+    pub tags: Vec<String>,
 }
 
 impl<T> UserWrapper<T> {

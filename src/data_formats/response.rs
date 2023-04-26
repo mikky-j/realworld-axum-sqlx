@@ -135,7 +135,7 @@ impl ArticleResponse {
             description,
             body,
             tag_list: Tags {
-                tag_list: tag_list.split(',').map(|s| s.to_string()).collect(),
+                tags: tag_list.split(',').map(|s| s.to_string()).collect(),
             },
             created_at: datetime_to_string(created_at),
             updated_at: datetime_to_string(updated_at),
