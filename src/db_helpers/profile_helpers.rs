@@ -64,6 +64,24 @@ pub async fn get_profile_by_username_in_db(
     Ok(result)
 }
 
+pub async fn get_all_profile_username_in_db(
+    pool: &SqlitePool,
+) -> Result<Vec<String>, RequestError> {
+    let mut tx = pool.begin().await?;
+    let result = sqlx::query!(
+        r#"
+        SELECT username FROM users
+        "#
+    )
+    .fetch_all(&mut tx)
+    .await?;
+    let result = result
+        .into_iter()
+        .map(|user| user.username)
+        .collect::<Vec<_>>();
+    Ok(result)
+}
+
 pub async fn follow_user_in_db(
     pool: &SqlitePool,
     follower_id: i64,

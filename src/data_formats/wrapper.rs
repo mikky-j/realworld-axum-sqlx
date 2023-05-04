@@ -36,6 +36,7 @@ pub struct MultipleCommentsWrapper {
 
 #[derive(Debug, Deserialize, Serialize, Default)]
 pub struct Tags {
+    #[serde(rename = "tagList")]
     pub tags: Vec<String>,
 }
 

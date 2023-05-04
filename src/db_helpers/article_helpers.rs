@@ -218,8 +218,8 @@ pub async fn create_article_in_db(
     .await?;
 
     let article_id = result.id;
-    if let Some(Tags { tags: tag }) = tag_list {
-        for tag in tag {
+    if let Some(Tags { tags }) = tag_list {
+        for tag in tags {
             let tag_id = sqlx::query!(
                 r#"
             INSERT INTO tags (name)

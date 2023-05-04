@@ -50,3 +50,22 @@ pub struct UpdateArticleRequest {
 pub struct CommentRequest {
     pub body: String,
 }
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test() {
+        let test_string = r#"
+             {
+                "title": "How to train your dragon",
+                "description": "Ever wonder how?",
+                "body": "It takes a Jacobian",
+                "tagList": ["dragons", "training"]
+            }
+        "#;
+        let create_article_request =
+            serde_json::from_str::<super::CreateArticleRequest>(test_string);
+        println!("{:?}", create_article_request);
+        assert!(create_article_request.is_ok());
+    }
+}

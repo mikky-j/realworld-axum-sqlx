@@ -152,6 +152,13 @@ pub async fn get_profile(
     Ok((StatusCode::OK, Json(ProfileWrapper { profile: result })))
 }
 
+pub async fn get_all_profile_username(
+    Extension(pool): Extension<Arc<SqlitePool>>,
+) -> JsonResult<Vec<String>> {
+    let result = get_all_profile_username_in_db(&pool).await?;
+    Ok((StatusCode::OK, Json(result)))
+}
+
 pub async fn follow_profile(
     MaybeUser(maybe_user): MaybeUser,
     Extension(pool): Extension<Arc<SqlitePool>>,

@@ -84,6 +84,7 @@ pub fn make_router() -> Router {
         .route("/users/login", post(login_user))
         .route("/users", post(register_user))
         .route("/user", get(get_current_user).put(update_user))
+        .route("/profiles/list", get(get_all_profile_username))
         .route("/profiles/:username", get(get_profile))
         .route(
             "/profiles/:username/follow",
