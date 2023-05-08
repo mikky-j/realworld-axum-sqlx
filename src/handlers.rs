@@ -399,8 +399,7 @@ pub async fn add_comment(
 }
 
 pub async fn delete_comment(
-    Path(slug): Path<String>,
-    Path(id): Path<i64>,
+    Path((slug, id)): Path<(String, i64)>,
     MaybeUser(maybe_user): MaybeUser,
     Extension(pool): Extension<Arc<SqlitePool>>,
 ) -> Result<StatusCode, RequestError> {
